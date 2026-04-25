@@ -1,6 +1,6 @@
 import { RequestAddTripDto, RequestUpdateTripDto } from './dto/trips.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Trip } from 'src/database/entities/trip.entity';
+import { Trip } from '../../database/entities/trip.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 
@@ -12,7 +12,7 @@ export class TripsService {
   ) {}
 
   // Создание новой поездки (dto - данные для создания поездки)
-  async createTrip(dto: RequestAddTripDto): Promise<Trip> {
+  async create(dto: RequestAddTripDto) {
     const trip = this.tripsRepository.create(dto);
     return await this.tripsRepository.save(trip);
   }
@@ -54,7 +54,7 @@ export class TripsService {
   }
 
   // Обновление поездки
-  async update(id: string, dto: RequestUpdateTripDto): Promise<Trip> {
+  async update(id: string, dto: RequestUpdateTripDto) {
     const trip = await this.findOne(id); // Находим поездку
     Object.assign(trip, dto); // Обновляем поля поездки новыми значениями
 

@@ -16,7 +16,7 @@ export class Trip {
   title!: string;
 
   @Column({ type: 'text', nullable: true })
-  description!: string;
+  description?: string;
 
   @Column({ length: 100 })
   destination!: string;
@@ -40,5 +40,5 @@ export class Trip {
   updatedAt!: Date;
 
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt!: Date;
+  deletedAt?: Date;
 }
