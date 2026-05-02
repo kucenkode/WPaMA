@@ -32,7 +32,13 @@ services:
       - travel_network
 
   app:
-    build: .
+    build: 
+      context: .
+      args:
+        - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+        - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+        - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+        - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
     container_name: travel_app
     restart: unless-stopped
     environment:
@@ -42,6 +48,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       PORT: 4200
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
+      FRONTEND_URL: ${FRONTEND_URL}
     ports:
       - "4200:4200"
     depends_on:

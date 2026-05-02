@@ -1,5 +1,7 @@
 import { DataSource } from 'typeorm';
 import { Trip } from './database/entities/trip.entity';
+import { User } from './database/entities/user.entity';
+import { RefreshToken } from './database/entities/refresh-token.entity';
 import 'dotenv/config';
 
 export const AppDataSource = new DataSource({
@@ -9,6 +11,6 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [Trip],
+  entities: [Trip, User, RefreshToken],
   migrations: ['dist/database/migrations/*.ts'],
 });
