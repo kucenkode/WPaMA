@@ -49,43 +49,43 @@ export class TripsService {
     return saved;
   }
 
-  async findAll(
-    page: number,
-    pageSize: number,
-    filters?: RequestGetTripsByFilterDto,
-  ): Promise<any> {
-    const cacheKey = this.getListCacheKey({
+  async findAll(page: number, pageSize: number, filters?: RequestGetTripsByFilterDto): Promise<any> {
+  const cacheKey = this.getListCacheKey({ page, pageSize, ...filters } as RequestGetTripsByFilterDto);
+  
+  // Логирование
+  console.log('🔑 Cache key:', cacheKey);
+  
+  const cached = await this.redisService.get(cacheKey);
+  console.log('💾 Cached data exists?', !!cached);
+  
+  if (cached) {
+    console.log('✅ Returning from Redis cache');
+    return cached;
+  }
+
+  console.log('📦 Fetching from PostgreSQL');
+  const skip = (page - 1) * pageSize;
+  const [data, total] = await this.tripsRepository.findAndCount({
+    where: { deletedAt: IsNull() },
+    skip,
+    take: pageSize,
+    order: { createdAt: 'DESC' },
+  });
+
+  const result = {
+    data,
+    meta: {
+      total,
       page,
       pageSize,
-      ...filters,
-    } as RequestGetTripsByFilterDto);
+      totalPages: Math.ceil(total / pageSize),
+    },
+  };
 
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const skip = (page - 1) * pageSize;
-    const [data, total] = await this.tripsRepository.findAndCount({
-      where: { deletedAt: IsNull() },
-      skip,
-      take: pageSize,
-      order: { createdAt: 'DESC' },
-    });
-
-    const result = {
-      data,
-      meta: {
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      },
-    };
-
-    await this.redisService.set(cacheKey, result);
-    return result;
-  }
+  console.log('💾 Saving to Redis cache');
+  await this.redisService.set(cacheKey, result);
+  return result;
+}
 
   async findOne(id: string): Promise<Trip> {
     const cacheKey = this.getItemCacheKey(id);

@@ -222,17 +222,25 @@ export class AuthService {
     return this.generateTokens(user, userAgent, ip);
   }
 
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string, accessToken?: string) {
     const hashedToken = this.hashToken(refreshToken);
     const storedToken = await this.refreshTokenRepository.findOne({
       where: { tokenHash: hashedToken, revoked: false },
     });
 
     if (storedToken) {
-      // Помечаем токен как отозванный
+      // Помечаем refresh токен как отозванный
       storedToken.revoked = true;
       storedToken.revokedAt = new Date();
       await this.refreshTokenRepository.save(storedToken);
+    }
+
+    // Отзыв access токена из Redis
+    if (accessToken) {
+      const payload = this.jwtService.verifyAccessToken(accessToken);
+      if (payload && payload.jti) {
+        await this.revokeAccessToken(payload.sub, payload.jti);
+      }
     }
 
     return { message: 'Успешный выход из системы' };
@@ -273,10 +281,6 @@ export class AuthService {
 
   private getAccessTokenKey(userId: string, jti: string): string {
     return `wp:auth:user:${userId}:access:${jti}`;
-  }
-
-  private getUserProfileCacheKey(userId: string): string {
-    return `wp:auth:user:${userId}:profile`;
   }
 
   async isAccessTokenValid(userId: string, jti: string): Promise<boolean> {
