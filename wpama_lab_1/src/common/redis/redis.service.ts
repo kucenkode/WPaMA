@@ -51,15 +51,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async set(key: string, value: unknown, ttl?: number): Promise<void> {
-  try {
-    const serialized = JSON.stringify(value);
-    const ttlValue = ttl || Number(process.env.CACHE_TTL_DEFAULT) || 300;
-    console.log(`💾 Redis SET: ${key}, TTL: ${ttlValue}`);  // ← добавить
-    await this.client.setex(key, ttlValue, serialized);
-  } catch (e) {
-    this.logger.error(`Failed to set key ${key}: ${e}`);
+    try {
+      const serialized = JSON.stringify(value);
+      const ttlValue = ttl || parseInt(process.env.CACHE_TTL_DEFAULT || '300');
+      await this.client.setex(key, ttlValue, serialized);
+    } catch (error) {
+      this.logger.error(`Failed to set key ${key}: ${error.message}`);
+    }
   }
-}
 
   async del(key: string): Promise<void> {
     try {
