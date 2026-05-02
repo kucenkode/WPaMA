@@ -19,6 +19,23 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: travel_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - travel_redis_data:/data
+    networks:
+      - travel_network
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: travel_pgadmin
@@ -49,6 +66,10 @@ services:
       DB_NAME: ${DB_NAME}
       PORT: 4200
       NODE_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CACHE_TTL_DEFAULT: ${CACHE_TTL_DEFAULT}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
@@ -59,6 +80,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - travel_network
     volumes:
@@ -67,6 +90,7 @@ services:
 
 volumes:
   travel_postgres_data:
+  travel_redis_data:
 
 networks:
   travel_network:

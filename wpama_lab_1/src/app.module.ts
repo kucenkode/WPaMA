@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TripsModule } from './modules/trips/trips.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { RedisModule } from './common/redis/redis.module';
 import { Trip } from './database/entities/trip.entity';
 import { User } from './database/entities/user.entity';
 import { RefreshToken } from './database/entities/refresh-token.entity';
@@ -31,6 +32,7 @@ import { RefreshToken } from './database/entities/refresh-token.entity';
     }),
     TripsModule,
     AuthModule,
+    RedisModule,
   ],
 })
 export class AppModule {}

@@ -12,6 +12,7 @@ import { RegisterDto, LoginDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import axios from 'axios';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
+    private redisService: RedisService,
     private jwtService: JwtManualService,
   ) {}
 
@@ -88,6 +90,7 @@ export class AuthService {
         params: { format: 'json' },
         headers: { Authorization: `OAuth ${accessToken}` },
       });
+
       return response.data;
     } catch (error) {
       throw new UnauthorizedException('Ошибка получения данных пользователя');
@@ -130,7 +133,11 @@ export class AuthService {
     });
   }
 
-  async createOAuthUser(email: string, providerId: string, provider: string): Promise<User> {
+  async createOAuthUser(
+    email: string,
+    providerId: string,
+    provider: string,
+  ): Promise<User> {
     const user = this.userRepository.create({
       email,
       isOAuthUser: true,
@@ -145,8 +152,7 @@ export class AuthService {
   }
 
   async generateTokens(user: User, userAgent?: string, ip?: string) {
-    // Генерация JWT токенов
-    const accessToken = this.jwtService.generateAccessToken(
+    const { token: accessToken, jti } = this.jwtService.generateAccessToken(
       user.id,
       user.email,
     );
@@ -155,14 +161,18 @@ export class AuthService {
       user.email,
     );
 
-    // Хеширование refresh токена для хранения в БД
-    const hashedRefreshToken = this.hashToken(refreshToken);
+    // Сохранение JTI в Redis
+    const accessTtl = 15 * 60;
+    await this.redisService.set(
+      this.getAccessTokenKey(user.id, jti),
+      'valid',
+      accessTtl,
+    );
 
-    // Срок действия refresh токена (7 дней по умолчанию)
+    const hashedRefreshToken = this.hashToken(refreshToken);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // Сохранение refresh токена в БД
     const refreshTokenEntity = this.refreshTokenRepository.create({
       tokenHash: hashedRefreshToken,
       expiresAt,
@@ -259,5 +269,29 @@ export class AuthService {
     return this.userRepository.findOne({
       where: { id: userId, deletedAt: IsNull() },
     });
+  }
+
+  private getAccessTokenKey(userId: string, jti: string): string {
+    return `wp:auth:user:${userId}:access:${jti}`;
+  }
+
+  private getUserProfileCacheKey(userId: string): string {
+    return `wp:auth:user:${userId}:profile`;
+  }
+
+  async isAccessTokenValid(userId: string, jti: string): Promise<boolean> {
+    const key = this.getAccessTokenKey(userId, jti);
+    const value = await this.redisService.get(key);
+    return value !== null;
+  }
+
+  async revokeAccessToken(userId: string, jti: string): Promise<void> {
+    const key = this.getAccessTokenKey(userId, jti);
+    await this.redisService.del(key);
+  }
+
+  async revokeAllUserAccessTokens(userId: string): Promise<void> {
+    const pattern = `wp:auth:user:${userId}:access:*`;
+    await this.redisService.delByPattern(pattern);
   }
 }

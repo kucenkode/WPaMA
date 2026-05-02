@@ -233,31 +233,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   @ApiCookieAuth()
-  @ApiOperation({
-    summary: 'Выход из системы',
-    description:
-      'Завершает текущую сессию (отзывает refresh токен) и очищает cookies',
-  })
-  @ApiOkResponse({
-    description: 'Успешный выход',
-    schema: {
-      example: {
-        success: true,
-        message: 'Успешный выход из системы',
-      },
-    },
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Токен не предоставлен или невалиден',
-    schema: {
-      example: {
-        statusCode: 401,
-        message: 'Токен не предоставлен',
-        error: 'Unauthorized',
-      },
-    },
-  })
-  public async logout(
+  @ApiOperation({ summary: 'Выход из системы' })
+  async logout(
     @Req() req: RequestWithUser,
     @Res() res: Response,
   ): Promise<Response> {
@@ -275,6 +252,16 @@ export class AuthController {
     });
   }
 
+  @ApiUnauthorizedResponse({
+    description: 'Токен не предоставлен или невалиден',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Токен не предоставлен',
+        error: 'Unauthorized',
+      },
+    },
+  })
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
