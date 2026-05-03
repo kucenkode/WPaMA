@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -12,9 +12,6 @@ export class User {
   passwordHash?: string;
 
   @Prop()
-  salt?: string;
-
-  @Prop()
   yandexId?: string;
 
   @Prop()
@@ -22,6 +19,9 @@ export class User {
 
   @Prop({ default: false })
   isOAuthUser!: boolean;
+
+  @Prop({ type: Types.ObjectId, ref: 'File', default: null })
+  avatarFileId?: Types.ObjectId;
 
   @Prop({ default: null })
   deletedAt?: Date;
