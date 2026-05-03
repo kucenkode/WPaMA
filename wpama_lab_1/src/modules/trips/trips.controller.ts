@@ -60,14 +60,12 @@ export class TripsController {
   @ApiUnauthorizedResponse({
     description: 'Токен не предоставлен или невалиден',
   })
-  @ApiBadRequestResponse({
-    description:
-      'Некорректные данные (невалидный формат даты, отрицательная цена и т.д.)',
-  })
+  @ApiBadRequestResponse({ description: 'Некорректные данные' })
   public async create(
     @Body() dto: RequestAddTripDto,
   ): Promise<TripResponseDto> {
-    return this.tripsService.create(dto);
+    const trip = await this.tripsService.create(dto);
+    return trip as TripResponseDto;
   }
 
   @Get()
@@ -127,7 +125,7 @@ export class TripsController {
   public async findAll(
     @Query() query: RequestGetTripsByFilterDto,
   ): Promise<PaginatedTripsResponseDto> {
-    return this.tripsService.findAll(query.page, query.pageSize);
+    return this.tripsService.findAll(query.page, query.pageSize, query);
   }
 
   @Get(':id')
@@ -142,18 +140,14 @@ export class TripsController {
     description: 'UUID поездки',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @ApiOkResponse({
-    description: 'Поездка найдена',
-    type: TripResponseDto,
-  })
+  @ApiOkResponse({ description: 'Поездка найдена', type: TripResponseDto })
   @ApiUnauthorizedResponse({
     description: 'Токен не предоставлен или невалиден',
   })
-  @ApiNotFoundResponse({
-    description: 'Поездка не найдена',
-  })
+  @ApiNotFoundResponse({ description: 'Поездка не найдена' })
   public async findOne(@Param('id') id: string): Promise<TripResponseDto> {
-    return this.tripsService.findOne(id);
+    const trip = await this.tripsService.findOne(id);
+    return trip as TripResponseDto;
   }
 
   @Put(':id')
@@ -183,7 +177,8 @@ export class TripsController {
     @Param('id') id: string,
     @Body() dto: RequestUpdateTripDto,
   ): Promise<TripResponseDto> {
-    return this.tripsService.update(id, dto);
+    const trip = await this.tripsService.update(id, dto);
+    return trip as TripResponseDto;
   }
 
   @Patch(':id')
@@ -210,15 +205,15 @@ export class TripsController {
     @Param('id') id: string,
     @Body() dto: RequestUpdateTripDto,
   ): Promise<TripResponseDto> {
-    return this.tripsService.update(id, dto);
+    const trip = await this.tripsService.update(id, dto);
+    return trip as TripResponseDto;
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Мягкое удаление поездки',
-    description:
-      'Помечает поездку как удаленную (Soft Delete). Поездка не удаляется физически из БД, а получает отметку deleted_at.',
+    description: 'Помечает поездку как удаленную (Soft Delete)',
   })
   @ApiParam({
     name: 'id',
@@ -226,10 +221,7 @@ export class TripsController {
     required: true,
     description: 'UUID поездки',
   })
-  @ApiResponse({
-    status: 204,
-    description: 'Поездка успешно удалена',
-  })
+  @ApiResponse({ status: 204, description: 'Поездка успешно удалена' })
   @ApiUnauthorizedResponse({
     description: 'Токен не предоставлен или невалиден',
   })

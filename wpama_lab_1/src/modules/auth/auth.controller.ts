@@ -218,8 +218,11 @@ export class AuthController {
     const userAgent = req.headers['user-agent'];
     const ip = req.ip;
 
-    const { accessToken, refreshToken: newRefreshToken, user } =
-      await this.authService.refreshTokens(refreshToken, userAgent, ip);
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      user,
+    } = await this.authService.refreshTokens(refreshToken, userAgent, ip);
 
     this.setAuthCookies(res, accessToken, newRefreshToken);
 
@@ -302,34 +305,14 @@ export class AuthController {
 
   @Get('whoami')
   @UseGuards(AuthGuard)
-  @ApiCookieAuth()
-  @ApiOperation({
-    summary: 'Проверка авторизации',
-    description:
-      'Возвращает информацию о текущем авторизованном пользователе. Используется фронтендом для проверки статуса авторизации.',
-  })
-  @ApiOkResponse({
-    description: 'Пользователь авторизован',
-    type: WhoamiResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Токен не предоставлен или невалиден',
-    schema: {
-      example: {
-        statusCode: 401,
-        message: 'Токен не предоставлен',
-        error: 'Unauthorized',
-      },
-    },
-  })
-  public async whoami(@Req() req: RequestWithUser): Promise<WhoamiResponseDto> {
+  async whoami(@Req() req: RequestWithUser): Promise<WhoamiResponseDto> {
     const userId = req.user?.sub;
-
     if (!userId) {
       throw new UnauthorizedException('Пользователь не авторизован');
     }
-
-    return this.authService.whoami(userId);
+    return (await this.authService.whoami(
+      userId,
+    )) as unknown as WhoamiResponseDto;
   }
 
   @Get('oauth/yandex')
@@ -358,7 +341,8 @@ export class AuthController {
   @Get('oauth/yandex/callback')
   @ApiOperation({
     summary: 'Callback OAuth Yandex',
-    description: 'Обрабатывает ответ от Яндекса, обменивает code на access_token, получает данные пользователя, создает/находит пользователя в БД и устанавливает cookies',
+    description:
+      'Обрабатывает ответ от Яндекса, обменивает code на access_token, получает данные пользователя, создает/находит пользователя в БД и устанавливает cookies',
   })
   @ApiResponse({
     status: 302,

@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { TripsController } from './trips.controller';
 import { TripsService } from './trips.service';
-import { Trip } from '../../database/entities/trip.entity';
+import { Trip, TripSchema } from '../../database/schemas/trip.schema';
 import { AuthModule } from '../auth/auth.module';
 import { RedisModule } from '../../common/redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Trip]), AuthModule, RedisModule],
+  imports: [
+    MongooseModule.forFeature([{ name: Trip.name, schema: TripSchema }]),
+    AuthModule,
+    RedisModule,
+  ],
   controllers: [TripsController],
   providers: [TripsService],
 })

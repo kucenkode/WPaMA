@@ -1,20 +1,20 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: travel_db
+  mongo:
+    image: mongo:6
+    container_name: travel_mongo
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - travel_postgres_data:/var/lib/postgresql/data
+      - travel_mongo_data:/data/db
     networks:
       - travel_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,34 +36,12 @@ services:
       timeout: 5s
       retries: 5
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: travel_pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    networks:
-      - travel_network
-
   app:
-    build: 
-      context: .
-      args:
-        - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
-        - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-        - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
-        - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+    build: .
     container_name: travel_app
     restart: unless-stopped
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=admin
       PORT: 4200
       NODE_ENV: development
       REDIS_HOST: redis
@@ -78,7 +56,7 @@ services:
     ports:
       - "4200:4200"
     depends_on:
-      postgres:
+      mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -89,7 +67,7 @@ services:
       - /app/node_modules
 
 volumes:
-  travel_postgres_data:
+  travel_mongo_data:
   travel_redis_data:
 
 networks:

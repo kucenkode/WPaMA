@@ -66,12 +66,6 @@ export class WhoamiResponseDto {
     description: 'Зарегистрирован ли через OAuth',
   })
   isOAuthUser!: boolean;
-
-  @ApiProperty({
-    example: '2026-01-01T12:00:00.000Z',
-    description: 'Дата регистрации',
-  })
-  createdAt!: Date;
 }
 
 export class UserResponseDto {
