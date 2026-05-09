@@ -4,6 +4,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtManualService } from './jwt.service';
 import { AuthGuard } from './guards/auth.guard';
+import { AuthConsumer } from './auth.consumer';
 import { User, UserSchema } from '../../database/schemas/user.schema';
 import {
   RefreshToken,
@@ -11,6 +12,8 @@ import {
 } from '../../database/schemas/refresh-token.schema';
 import { RedisModule } from '../../common/redis/redis.module';
 import { StorageModule } from '../storage/storage.module';
+import { RabbitMQModule } from '../../common/queue/rabbitmq.module';
+import { EmailModule } from '../../common/email/email.module';
 
 @Module({
   imports: [
@@ -20,9 +23,11 @@ import { StorageModule } from '../storage/storage.module';
     ]),
     RedisModule,
     forwardRef(() => StorageModule),
+    RabbitMQModule,
+    EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtManualService, AuthGuard],
+  providers: [AuthService, JwtManualService, AuthGuard, AuthConsumer],
   exports: [AuthService, JwtManualService, AuthGuard],
 })
 export class AuthModule {}

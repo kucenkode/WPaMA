@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { v4 as uuidv4 } from 'uuid';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -15,6 +16,7 @@ import {
 import { JwtManualService } from './jwt.service';
 import { RedisService } from '../../common/redis/redis.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RabbitMQService } from '../../common/queue/rabbitmq.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +26,7 @@ export class AuthService {
     private refreshTokenModel: Model<RefreshTokenDocument>,
     private jwtService: JwtManualService,
     private redisService: RedisService,
+    private rabbitMQService: RabbitMQService,
   ) {}
 
   private hashToken(token: string): string {
@@ -57,6 +60,36 @@ export class AuthService {
     await this.redisService.delByPattern(pattern);
   }
 
+  private async publishUserRegisteredEvent(user: UserDocument): Promise<void> {
+    const event = {
+      eventId: uuidv4(),
+      eventType: 'user.registered',
+      timestamp: new Date().toISOString(),
+      payload: {
+        userId: (user._id as Types.ObjectId).toString(),
+        email: user.email,
+        displayName: user.email.split('@')[0],
+      },
+      metadata: {
+        attempt: 1,
+        sourceService: 'auth-service',
+      },
+    };
+
+    try {
+      await this.rabbitMQService.publish(
+        'app.events',
+        'user.registered',
+        event,
+      );
+      console.log(
+        `[RabbitMQ] Event published: ${event.eventId} for user ${user.email}`,
+      );
+    } catch (error) {
+      console.error(`[RabbitMQ] Failed to publish event: ${error.message}`);
+    }
+  }
+
   async register(dto: RegisterDto, userAgent?: string, ip?: string) {
     const existingUser = await this.userModel
       .findOne({
@@ -80,6 +113,12 @@ export class AuthService {
     });
 
     await user.save();
+
+    // Публикация события в RabbitMQ
+    this.publishUserRegisteredEvent(user).catch((err) => {
+      console.error(`[RabbitMQ] Failed to publish event: ${err.message}`);
+    });
+
     return this.generateTokens(user, userAgent, ip);
   }
 
@@ -250,6 +289,14 @@ export class AuthService {
       yandexId: provider === 'yandex' ? providerId : undefined,
       vkId: provider === 'vk' ? providerId : undefined,
     });
+
+    // Публикация события для OAuth пользователей тоже!
+    this.publishUserRegisteredEvent(user).catch((err) => {
+      console.error(
+        `[RabbitMQ] Failed to publish event for OAuth user: ${err.message}`,
+      );
+    });
+
     return user.save();
   }
 
